@@ -6,7 +6,6 @@
 /.vercel
 
 # Firebase config file with sensitive keys
-firebase-config.js
 
 # Environment variables
 .env
