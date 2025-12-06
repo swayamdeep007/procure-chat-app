@@ -11,6 +11,9 @@ let CURRENT_USER_DESIGNATION = "";
 
 const ADMIN_EMAILS = ["jay@sbi.com", "ss@sbi.com"]; 
 
+// --- NEW: INSTANT OFFLINE PLACEHOLDER (No loading time) ---
+const DEFAULT_AVATAR = "data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22100%22%20height%3D%22100%22%3E%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20fill%3D%22%23e0e0e0%22%2F%3E%3Ctext%20x%3D%2250%25%22%20y%3D%2250%25%22%20font-family%3D%22sans-serif%22%20font-size%3D%2235%22%20fill%3D%22%23888%22%20dy%3D%22.3em%22%20text-anchor%3D%22middle%22%3EPL%3C%2Ftext%3E%3C%2Fsvg%3E";
+
 /* --- AUTH --- */
 auth.onAuthStateChanged(user => {
   if (user) {
@@ -61,11 +64,11 @@ window.saveUserProfile = async () => {
     updateProfileUI(); closeEditProfile(); alert("Profile Updated!");
 };
 
-/* --- REPORTS LOGIC (NEW) --- */
+/* --- REPORTS LOGIC --- */
 window.openReportsModal = () => { document.getElementById("reports-modal").style.display = "block"; };
 window.closeReportsModal = () => { document.getElementById("reports-modal").style.display = "none"; };
 
-// 1. GLOBAL REPORT (ALL PLs)
+// 1. GLOBAL REPORT
 window.downloadAllPLReport = async () => {
     const btn = document.querySelector("#reports-modal .csv-btn");
     const statusEl = document.getElementById("report-status");
@@ -73,15 +76,12 @@ window.downloadAllPLReport = async () => {
     statusEl.textContent = "Fetching data... (This may take a moment)";
 
     try {
-        // Fetch all POs to join Supplier/Qty data
         const poSnap = await db.collection("POs").get();
         const poMap = {};
         poSnap.forEach(doc => { poMap[doc.id] = doc.data(); });
 
         const data = [];
-        // allPLs is already loaded in memory by the listener
         allPLs.forEach(pl => {
-            // Find related PO details
             const poNumbers = pl.relatedPOs || [];
             let suppliers = [];
             let qtys = [];
@@ -99,7 +99,7 @@ window.downloadAllPLReport = async () => {
                 "Current Status": pl.status || "Normal",
                 "Last Activity": pl.lastActivity ? new Date(pl.lastActivity).toLocaleString('en-GB') : "",
                 "Related POs": poNumbers.join(", "),
-                "Suppliers": [...new Set(suppliers)].join(", "), // Unique suppliers
+                "Suppliers": [...new Set(suppliers)].join(", "),
                 "Quantities": qtys.join("; ")
             });
         });
@@ -128,9 +128,8 @@ window.exportChannelChat = async () => {
         
         snap.forEach(doc => {
             const m = doc.data();
-            if(m.isDeleted) return; // Skip deleted messages
+            if(m.isDeleted) return; 
 
-            // Extract tags from text
             const tags = [];
             if(m.text && m.text.includes("#")) {
                 const words = m.text.split(" ");
@@ -154,7 +153,6 @@ window.exportChannelChat = async () => {
         });
 
         if(data.length === 0) return alert("No messages to export.");
-
         const csv = Papa.unparse(data);
         downloadCSV(csv, `Chat_${selectedPL}_${new Date().toISOString().slice(0,10)}.csv`);
 
@@ -315,8 +313,9 @@ window.renderPLList = () => {
                 `<button class="restore-pl-btn" onclick="restorePL('${pl.id}', event)">♻️</button><button class="delete-pl-btn" onclick="hardDeletePL('${pl.id}', event)">❌</button>` : 
                 `<button class="delete-pl-btn" onclick="softDeletePL('${pl.id}', event)">🗑️</button>`) : '';
 
-            const avatarSrc = pl.photoUrl || "https://via.placeholder.com/35?text=PL";
-            const avatarHtml = `<img src="${avatarSrc}" class="pl-avatar" onerror="this.src='https://via.placeholder.com/35?text=PL'">`;
+            // USE LOCAL DEFAULT AVATAR
+            const avatarSrc = pl.photoUrl || DEFAULT_AVATAR;
+            const avatarHtml = `<img src="${avatarSrc}" class="pl-avatar" onerror="this.src='${DEFAULT_AVATAR}'">`;
 
             div.innerHTML = `${avatarHtml}<div class="pl-info">${badge}${buttonsHtml}<span class="pl-number">${pl.id}</span><span class="pl-desc">${pl.description}</span></div>`;
             div.onclick = (e) => { if(e.target.tagName === 'BUTTON') return; selectPL(pl.id, pl.description, pl.status); };
@@ -363,11 +362,12 @@ window.selectPL = (plNumber, description, status) => {
   else if(status === 'TPI') statusEl.style.color = '#673ab7';
   else statusEl.style.color = 'grey';
   
+  // USE LOCAL DEFAULT AVATAR
   const plData = allPLs.find(p => p.id === plNumber);
-  const dpUrl = (plData && plData.photoUrl) ? plData.photoUrl : "https://via.placeholder.com/40?text=PL";
+  const dpUrl = (plData && plData.photoUrl) ? plData.photoUrl : DEFAULT_AVATAR;
   const dpImg = document.getElementById("header-pl-img");
   dpImg.src = dpUrl;
-  dpImg.onerror = function() { this.src = "https://via.placeholder.com/40?text=PL"; }; 
+  dpImg.onerror = function() { this.src = DEFAULT_AVATAR; }; 
 
   document.getElementById("app-container").classList.add("chat-active");
   document.getElementById("chat-controls").style.display = "flex";
