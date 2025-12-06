@@ -20,7 +20,7 @@
       <span id="user-name-display">👤 Loading...</span>
       <span class="dropdown-arrow">▼</span>
       <div id="user-dropdown" class="dropdown-content">
-          <div class="dropdown-item" onclick="openEditProfile()">✏️ Edit Profile</div>
+          <div class="dropdown-item" onclick="openDashboard()">📈 Dashboard</div> <div class="dropdown-item" onclick="openEditProfile()">✏️ Edit Profile</div>
           <div id="menu-reports" class="dropdown-item" onclick="openReportsModal()">📊 Reports</div>
           <div id="menu-master-data" class="dropdown-item" onclick="openSettings()" style="display:none;">⚙️ Master Data</div>
           <div class="dropdown-divider"></div>
@@ -119,6 +119,48 @@
 
   <datalist id="pos-list"></datalist>
 
+  <div id="dashboard-modal" class="modal">
+    <div class="modal-content" style="max-width: 700px; width: 95%;">
+        <div class="modal-header">
+            <h3>📈 Master Data Dashboard</h3>
+            <span class="close-btn" onclick="closeDashboard()">&times;</span>
+        </div>
+        <div class="dashboard-body" style="padding: 10px; background: #f4f6f8;">
+            <div class="stats-grid">
+                <div class="stat-card total">
+                    <div class="stat-val" id="dash-total">0</div>
+                    <div class="stat-label">Total PLs</div>
+                </div>
+                <div class="stat-card urgent">
+                    <div class="stat-val" id="dash-urgent">0</div>
+                    <div class="stat-label">Urgent</div>
+                </div>
+                <div class="stat-card tpi">
+                    <div class="stat-val" id="dash-tpi">0</div>
+                    <div class="stat-label">TPI</div>
+                </div>
+                <div class="stat-card received">
+                    <div class="stat-val" id="dash-received">0</div>
+                    <div class="stat-label">Received</div>
+                </div>
+            </div>
+            
+            <div class="stats-grid-small" style="margin-top:10px;">
+                <div class="mini-stat">Escalated: <strong id="dash-esc">0</strong></div>
+                <div class="mini-stat">Delayed: <strong id="dash-delay">0</strong></div>
+                <div class="mini-stat">On Time: <strong id="dash-ontime">0</strong></div>
+                <div class="mini-stat">Normal: <strong id="dash-normal">0</strong></div>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <h4 style="margin-bottom: 10px; color: #b71c1c;">⚠️ Critical Attention Needed</h4>
+                <div id="dashboard-critical-list" style="max-height: 200px; overflow-y: auto; background: white; border: 1px solid #ddd; border-radius: 8px;">
+                    </div>
+            </div>
+        </div>
+    </div>
+  </div>
+
   <div id="reports-modal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
@@ -127,7 +169,7 @@
         </div>
         <div class="manage-section">
             <h4 style="margin-top:0;">Global Status Report</h4>
-            <p style="font-size:12px; color:#666;">Export a complete list of all PLs, their current status, suppliers, and recent activity.</p>
+            <p style="font-size:12px; color:#666;">Export a complete list of all PLs.</p>
             <button onclick="downloadAllPLReport()" class="csv-btn" style="background:#008069;">📥 Download All PLs Report (CSV)</button>
             <p id="report-status" style="font-size:11px; color:#008069; margin-top:5px;"></p>
         </div>

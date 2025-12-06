@@ -10,8 +10,6 @@ let CURRENT_USER_NAME = "User";
 let CURRENT_USER_DESIGNATION = "";
 
 const ADMIN_EMAILS = ["jay@sbi.com", "ss@sbi.com"]; 
-
-// --- NEW: INSTANT OFFLINE PLACEHOLDER (No loading time) ---
 const DEFAULT_AVATAR = "data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22100%22%20height%3D%22100%22%3E%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20fill%3D%22%23e0e0e0%22%2F%3E%3Ctext%20x%3D%2250%25%22%20y%3D%2250%25%22%20font-family%3D%22sans-serif%22%20font-size%3D%2235%22%20fill%3D%22%23888%22%20dy%3D%22.3em%22%20text-anchor%3D%22middle%22%3EPL%3C%2Ftext%3E%3C%2Fsvg%3E";
 
 /* --- AUTH --- */
@@ -64,11 +62,58 @@ window.saveUserProfile = async () => {
     updateProfileUI(); closeEditProfile(); alert("Profile Updated!");
 };
 
+/* --- DASHBOARD LOGIC (NEW) --- */
+window.openDashboard = () => {
+    // 1. Calculate Stats
+    let counts = { Total: 0, Urgent: 0, TPI: 0, Received: 0, Escalated: 0, Delayed: 0, OnTime: 0, Normal: 0 };
+    let criticalItems = [];
+
+    allPLs.forEach(pl => {
+        if(pl.status === 'Deleted') return;
+        
+        counts.Total++;
+        if(counts[pl.status] !== undefined) counts[pl.status]++;
+        else counts.Normal++;
+
+        // Add to critical list if Urgent or Escalated
+        if(pl.status === 'Urgent' || pl.status === 'Escalated') {
+            criticalItems.push(pl);
+        }
+    });
+
+    // 2. Update UI Numbers
+    document.getElementById("dash-total").textContent = counts.Total;
+    document.getElementById("dash-urgent").textContent = counts.Urgent;
+    document.getElementById("dash-tpi").textContent = counts.TPI;
+    document.getElementById("dash-received").textContent = counts.Received;
+    document.getElementById("dash-esc").textContent = counts.Escalated;
+    document.getElementById("dash-delay").textContent = counts.Delayed;
+    document.getElementById("dash-ontime").textContent = counts.OnTime;
+    document.getElementById("dash-normal").textContent = counts.Normal;
+
+    // 3. Render Critical List
+    const listContainer = document.getElementById("dashboard-critical-list");
+    listContainer.innerHTML = "";
+    if(criticalItems.length === 0) {
+        listContainer.innerHTML = `<div style="padding:10px; text-align:center; color:#888;">No critical items found. ✅</div>`;
+    } else {
+        criticalItems.forEach(pl => {
+            const div = document.createElement("div");
+            div.className = "dash-item";
+            div.innerHTML = `<span><strong>${pl.id}</strong> - <span style="color:${pl.status==='Urgent'?'#d32f2f':'#b71c1c'}">[${pl.status}]</span></span> <span>${pl.description.substring(0,30)}...</span>`;
+            div.onclick = () => { closeDashboard(); selectPL(pl.id, pl.description, pl.status); };
+            listContainer.appendChild(div);
+        });
+    }
+
+    document.getElementById("dashboard-modal").style.display = "block";
+};
+window.closeDashboard = () => { document.getElementById("dashboard-modal").style.display = "none"; };
+
 /* --- REPORTS LOGIC --- */
 window.openReportsModal = () => { document.getElementById("reports-modal").style.display = "block"; };
 window.closeReportsModal = () => { document.getElementById("reports-modal").style.display = "none"; };
 
-// 1. GLOBAL REPORT
 window.downloadAllPLReport = async () => {
     const btn = document.querySelector("#reports-modal .csv-btn");
     const statusEl = document.getElementById("report-status");
@@ -115,7 +160,6 @@ window.downloadAllPLReport = async () => {
     }
 };
 
-// 2. CHANNEL CHAT REPORT
 window.exportChannelChat = async () => {
     if(!selectedPL) return alert("Please select a channel first.");
     const btn = document.getElementById("export-chat-btn");
@@ -125,17 +169,14 @@ window.exportChannelChat = async () => {
     try {
         const snap = await db.collection("PLs").doc(selectedPL).collection("Messages").orderBy("timestamp", "asc").get();
         const data = [];
-        
         snap.forEach(doc => {
             const m = doc.data();
             if(m.isDeleted) return; 
-
             const tags = [];
             if(m.text && m.text.includes("#")) {
                 const words = m.text.split(" ");
                 words.forEach(w => { if(w.startsWith("#")) tags.push(w); });
             }
-
             data.push({
                 "Date": new Date(m.timestamp).toLocaleDateString('en-GB'),
                 "Time": new Date(m.timestamp).toLocaleTimeString('en-GB'),
@@ -151,11 +192,9 @@ window.exportChannelChat = async () => {
                 "Status Tags": tags.join(", ")
             });
         });
-
         if(data.length === 0) return alert("No messages to export.");
         const csv = Papa.unparse(data);
         downloadCSV(csv, `Chat_${selectedPL}_${new Date().toISOString().slice(0,10)}.csv`);
-
     } catch(e) {
         alert("Export failed: " + e.message);
     } finally {
@@ -313,7 +352,6 @@ window.renderPLList = () => {
                 `<button class="restore-pl-btn" onclick="restorePL('${pl.id}', event)">♻️</button><button class="delete-pl-btn" onclick="hardDeletePL('${pl.id}', event)">❌</button>` : 
                 `<button class="delete-pl-btn" onclick="softDeletePL('${pl.id}', event)">🗑️</button>`) : '';
 
-            // USE LOCAL DEFAULT AVATAR
             const avatarSrc = pl.photoUrl || DEFAULT_AVATAR;
             const avatarHtml = `<img src="${avatarSrc}" class="pl-avatar" onerror="this.src='${DEFAULT_AVATAR}'">`;
 
@@ -362,7 +400,6 @@ window.selectPL = (plNumber, description, status) => {
   else if(status === 'TPI') statusEl.style.color = '#673ab7';
   else statusEl.style.color = 'grey';
   
-  // USE LOCAL DEFAULT AVATAR
   const plData = allPLs.find(p => p.id === plNumber);
   const dpUrl = (plData && plData.photoUrl) ? plData.photoUrl : DEFAULT_AVATAR;
   const dpImg = document.getElementById("header-pl-img");
@@ -505,6 +542,7 @@ window.onclick = (e) => {
     if (!e.target.closest('#user-display')) document.getElementById("user-display").classList.remove("active"); 
     if (e.target == document.getElementById("settings-modal")) closeSettings(); 
     if (e.target == document.getElementById("reports-modal")) closeReportsModal();
+    if (e.target == document.getElementById("dashboard-modal")) closeDashboard(); // NEW
     if (e.target == document.getElementById("profile-modal")) closeEditProfile(); 
     if (e.target == document.getElementById("channel-details-modal")) closeChannelDetails();
 };
