@@ -61,6 +61,122 @@ window.saveUserProfile = async () => {
     updateProfileUI(); closeEditProfile(); alert("Profile Updated!");
 };
 
+/* --- REPORTS LOGIC (NEW) --- */
+window.openReportsModal = () => { document.getElementById("reports-modal").style.display = "block"; };
+window.closeReportsModal = () => { document.getElementById("reports-modal").style.display = "none"; };
+
+// 1. GLOBAL REPORT (ALL PLs)
+window.downloadAllPLReport = async () => {
+    const btn = document.querySelector("#reports-modal .csv-btn");
+    const statusEl = document.getElementById("report-status");
+    btn.disabled = true;
+    statusEl.textContent = "Fetching data... (This may take a moment)";
+
+    try {
+        // Fetch all POs to join Supplier/Qty data
+        const poSnap = await db.collection("POs").get();
+        const poMap = {};
+        poSnap.forEach(doc => { poMap[doc.id] = doc.data(); });
+
+        const data = [];
+        // allPLs is already loaded in memory by the listener
+        allPLs.forEach(pl => {
+            // Find related PO details
+            const poNumbers = pl.relatedPOs || [];
+            let suppliers = [];
+            let qtys = [];
+            
+            poNumbers.forEach(poNum => {
+                if(poMap[poNum]) {
+                    if(poMap[poNum].supplier) suppliers.push(poMap[poNum].supplier);
+                    if(poMap[poNum].qty) qtys.push(`${poNum}: ${poMap[poNum].qty}`);
+                }
+            });
+
+            data.push({
+                "PL Number": pl.id,
+                "Description": pl.description,
+                "Current Status": pl.status || "Normal",
+                "Last Activity": pl.lastActivity ? new Date(pl.lastActivity).toLocaleString('en-GB') : "",
+                "Related POs": poNumbers.join(", "),
+                "Suppliers": [...new Set(suppliers)].join(", "), // Unique suppliers
+                "Quantities": qtys.join("; ")
+            });
+        });
+
+        const csv = Papa.unparse(data);
+        downloadCSV(csv, `Master_Report_${new Date().toISOString().slice(0,10)}.csv`);
+        statusEl.textContent = "✅ Download Started!";
+    } catch (e) {
+        console.error(e);
+        statusEl.textContent = "❌ Error: " + e.message;
+    } finally {
+        btn.disabled = false;
+    }
+};
+
+// 2. CHANNEL CHAT REPORT
+window.exportChannelChat = async () => {
+    if(!selectedPL) return alert("Please select a channel first.");
+    const btn = document.getElementById("export-chat-btn");
+    const originalText = btn.innerHTML;
+    btn.innerHTML = "⏳";
+    
+    try {
+        const snap = await db.collection("PLs").doc(selectedPL).collection("Messages").orderBy("timestamp", "asc").get();
+        const data = [];
+        
+        snap.forEach(doc => {
+            const m = doc.data();
+            if(m.isDeleted) return; // Skip deleted messages
+
+            // Extract tags from text
+            const tags = [];
+            if(m.text && m.text.includes("#")) {
+                const words = m.text.split(" ");
+                words.forEach(w => { if(w.startsWith("#")) tags.push(w); });
+            }
+
+            data.push({
+                "Date": new Date(m.timestamp).toLocaleDateString('en-GB'),
+                "Time": new Date(m.timestamp).toLocaleTimeString('en-GB'),
+                "Sender": m.userName || m.userEmail,
+                "Designation": m.userDesignation || "",
+                "Message": m.text || "[Image]",
+                "PO Number": m.po || "",
+                "PO Date": m.poDate || "",
+                "Supplier": m.supplier || "",
+                "Qty": m.qty || "",
+                "DPDT": m.dpdt || "",
+                "ETA": m.eta || "",
+                "Status Tags": tags.join(", ")
+            });
+        });
+
+        if(data.length === 0) return alert("No messages to export.");
+
+        const csv = Papa.unparse(data);
+        downloadCSV(csv, `Chat_${selectedPL}_${new Date().toISOString().slice(0,10)}.csv`);
+
+    } catch(e) {
+        alert("Export failed: " + e.message);
+    } finally {
+        btn.innerHTML = originalText;
+    }
+};
+
+function downloadCSV(csvString, fileName) {
+    const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", fileName);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
 /* --- IMAGE HANDLING --- */
 window.triggerChatUpload = () => { document.getElementById("chat-file-input").click(); };
 window.triggerDPUpload = () => { document.getElementById("dp-file-input").click(); };
@@ -227,8 +343,6 @@ window.setFilter = (f) => {
 /* --- CHAT LOGIC --- */
 window.selectPL = (plNumber, description, status) => {
   selectedPL = plNumber;
-  
-  // CLEAR INPUTS ON CHANNEL SWITCH (FIXED)
   document.getElementById("input-po").value = "";
   document.getElementById("input-sup").value = "";
   document.getElementById("input-qty").value = "";
@@ -390,6 +504,7 @@ window.toggleUserMenu = () => { document.getElementById("user-display").classLis
 window.onclick = (e) => { 
     if (!e.target.closest('#user-display')) document.getElementById("user-display").classList.remove("active"); 
     if (e.target == document.getElementById("settings-modal")) closeSettings(); 
+    if (e.target == document.getElementById("reports-modal")) closeReportsModal();
     if (e.target == document.getElementById("profile-modal")) closeEditProfile(); 
     if (e.target == document.getElementById("channel-details-modal")) closeChannelDetails();
 };

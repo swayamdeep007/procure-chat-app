@@ -45,8 +45,8 @@ body { margin: 0; font-family: "Segoe UI", sans-serif; height: 100dvh; width: 10
 .chip-delayed.active { background: #f57c00; } 
 .chip-escalated.active { background: #b71c1c; } 
 .chip-ontime.active { background: #388e3c; } 
-.chip-received.active { background: #008069; } /* NEW */
-.chip-tpi.active { background: #673ab7; } /* NEW */
+.chip-received.active { background: #008069; } 
+.chip-tpi.active { background: #673ab7; } 
 .chip-trash.active { background: #333; color: #fff; border: 1px solid #777; }
 
 #pl-list { flex: 1; overflow-y: auto; padding: 10px; }
@@ -57,8 +57,8 @@ body { margin: 0; font-family: "Segoe UI", sans-serif; height: 100dvh; width: 10
 .pl-item.status-Delayed { border-left-color: #f57c00; background: #2f261e; }
 .pl-item.status-Escalated { border-left-color: #b71c1c; background: #3e1a1a; }
 .pl-item.status-OnTime { border-left-color: #388e3c; background: #1a2f1e; }
-.pl-item.status-Received { border-left-color: #008069; background: #1f2c25; } /* NEW */
-.pl-item.status-TPI { border-left-color: #673ab7; background: #2a2530; } /* NEW */
+.pl-item.status-Received { border-left-color: #008069; background: #1f2c25; } 
+.pl-item.status-TPI { border-left-color: #673ab7; background: #2a2530; } 
 .pl-item.status-Deleted { opacity: 0.6; border-left-color: #555; background: #222; }
 
 .pl-info { flex: 1; min-width: 0; }
@@ -99,8 +99,8 @@ body { margin: 0; font-family: "Segoe UI", sans-serif; height: 100dvh; width: 10
 .tag-delayed { color: #f57c00; background: #fff3e0; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 11px; }
 .tag-escalated { color: #b71c1c; background: #ffcdd2; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 11px; }
 .tag-ontime { color: #388e3c; background: #e8f5e9; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 11px; }
-.tag-received { color: #008069; background: #d9fdd3; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 11px; } /* NEW */
-.tag-tpi { color: #673ab7; background: #ede7f6; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 11px; } /* NEW */
+.tag-received { color: #008069; background: #d9fdd3; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 11px; } 
+.tag-tpi { color: #673ab7; background: #ede7f6; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 11px; } 
 
 /* CONTROLS */
 #chat-controls { padding: 5px 10px; background-color: #f0f2f5; border-top: 1px solid #ddd; flex-shrink: 0; }
