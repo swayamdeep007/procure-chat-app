@@ -1,0 +1,12 @@
+.vercel
+# Dependencies
+/node_modules
+
+# Vercel configuration
+/.vercel
+
+# Firebase config file with sensitive keys
+firebase-config.js
+
+# Environment variables
+.env

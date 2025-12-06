@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content" />
+  <title>Western Railway Procurement Chat</title>
+  <link rel="stylesheet" href="styles.css" />
+
+  <script src="https://www.gstatic.com/firebasejs/10.5.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.5.0/firebase-auth-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+</head>
+<body>
+
+  <input type="file" id="chat-file-input" hidden accept="image/*" onchange="handleChatImageSelect()">
+  <input type="file" id="dp-file-input" hidden accept="image/*" onchange="handleDPSelect()">
+
+  <div id="user-display" onclick="toggleUserMenu()">
+      <span id="user-name-display">👤 Loading...</span>
+      <span class="dropdown-arrow">▼</span>
+      <div id="user-dropdown" class="dropdown-content">
+          <div class="dropdown-item" onclick="openEditProfile()">✏️ Edit Profile</div>
+          <div id="menu-master-data" class="dropdown-item" onclick="openSettings()" style="display:none;">⚙️ Master Data</div>
+          <div class="dropdown-divider"></div>
+          <div class="dropdown-item logout-item" onclick="logoutUser()">🚪 Logout</div>
+      </div>
+  </div>
+
+  <div id="login-overlay">
+    <div class="login-box">
+      <h2>🚂 Western Railway Stores</h2>
+      <p>Secure Login</p>
+      <input type="email" id="login-email" placeholder="Email">
+      <input type="password" id="login-password" placeholder="Password">
+      <button onclick="loginUser()">Login</button>
+      <p id="login-error" style="color:red; font-size:12px; margin-top:10px;"></p>
+    </div>
+  </div>
+
+  <div id="app-container" style="display:none;">
+    <div id="pl-sidebar">
+      <div class="sidebar-header">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h2>📋 PL List</h2>
+        </div>
+        <input id="pl-search" placeholder="🔍 Search PLs..." onkeyup="filterPLs()">
+        <div class="filter-chips">
+            <button id="btn-all" class="chip active" onclick="setFilter('All')">All</button>
+            <button id="btn-urgent" class="chip chip-urgent" onclick="setFilter('Urgent')">Urg</button>
+            <button id="btn-delayed" class="chip chip-delayed" onclick="setFilter('Delayed')">Dly</button>
+            <button id="btn-escalated" class="chip chip-escalated" onclick="setFilter('Escalated')">Esc</button>
+            <button id="btn-ontime" class="chip chip-ontime" onclick="setFilter('OnTime')">OnT</button>
+            <button id="btn-tpi" class="chip chip-tpi" onclick="setFilter('TPI')">TPI</button>
+            <button id="btn-received" class="chip chip-received" onclick="setFilter('Received')">Rcvd</button>
+            <button id="btn-trash" class="chip chip-trash" onclick="setFilter('Trash')" style="display:none;">🗑️</button>
+        </div>
+      </div>
+      <div id="pl-list"></div>
+      <div class="input-area">
+        <input id="new-pl" placeholder="New PL Number">
+        <input id="new-pl-desc" placeholder="Description">
+        <button onclick="createPL()">+ Add PL Channel</button>
+      </div>
+    </div>
+
+    <div id="chat-panel">
+      <div class="chat-header">
+        <div style="display:flex; align-items:center;">
+            <button id="back-btn" onclick="closeChat()">←</button>
+            <div class="header-img-container">
+                <img id="header-pl-img" src="https://via.placeholder.com/40?text=PL" class="header-pl-avatar" onclick="viewChannelDetails()" title="View Info">
+                <button class="edit-dp-btn" onclick="triggerDPUpload()" title="Change Photo">📷</button>
+            </div>
+            <div style="flex:1; overflow:hidden; margin-left:5px;">
+                <h2 id="selected-pl-title" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Select a PL</h2>
+                <div style="display:flex; align-items:center;">
+                    <span id="selected-pl-desc" class="header-desc" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Western Railway Stores Dept.</span>
+                    <span id="selected-pl-status" class="header-status"></span>
+                </div>
+            </div>
+        </div>
+      </div>
+
+      <div id="chat-box"></div>
+
+      <div id="quick-tags" class="quick-tags" style="display:none;">
+        <button class="tag-btn" style="background:#ffebeb; color:#d32f2f;" onclick="addTag('#Urgent')">#Urgent</button>
+        <button class="tag-btn" style="background:#fff3e0; color:#f57c00;" onclick="addTag('#Delayed')">#Delayed</button>
+        <button class="tag-btn" style="background:#ffcdd2; color:#b71c1c;" onclick="addTag('#Escalated')">#Escalated</button>
+        <button class="tag-btn" style="background:#e8f5e9; color:#388e3c;" onclick="addTag('#OnTime')">#OnTime</button>
+        <button class="tag-btn" style="background:#ede7f6; color:#673ab7;" onclick="addTag('#TPI')">#TPI</button>
+        <button class="tag-btn" style="background:#e3f2fd; color:#008069;" onclick="addTag('#Received')">#Received</button>
+      </div>
+
+      <div id="chat-controls" style="display:none;">
+        <div class="message-row">
+            <button id="btn-attach" onclick="triggerChatUpload()" title="Send Photo">📎</button>
+            <input id="chat-input" placeholder="Type a message...">
+            <button onclick="sendMessage()">➤</button>
+        </div>
+        <div id="upload-progress-container" style="display:none; padding:0 5px 5px 5px;">
+            <span style="font-size:10px; color:#008069;">Compressing & Sending image...</span>
+        </div>
+        <div class="meta-inputs" style="position:relative; z-index:20;">
+            <input id="input-po" list="pos-list" placeholder="PO#" onchange="autoFillData()">
+            <input id="input-sup" placeholder="Supplier"> 
+            <input id="input-qty" placeholder="Qty">
+            <input id="input-eta" type="date">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <datalist id="pos-list"></datalist>
+
+  <div id="settings-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Master Data</h3>
+            <span class="close-btn" onclick="closeSettings()">&times;</span>
+        </div>
+        <div class="manage-section">
+            <h4 style="margin-top:0;">Upload Master Sheet</h4>
+            <div style="font-size:11px; color:#555; background:#f0f2f5; padding:8px; border-radius:4px; margin-bottom:10px;">
+                <strong>CSV Format (9 Columns):</strong><br>
+                1. PL No | 2. Desc | 3. PO No | 4. PO Date<br>
+                5. Qty | 6. Unit | 7. DPDT | 8. Supplier | 9. Status
+            </div>
+            <input type="file" id="master-csv" accept=".csv" style="font-size:12px; margin-bottom:10px; width:100%;">
+            <button onclick="uploadMasterCSV()" class="csv-btn">🚀 Upload & Update</button>
+            <p id="upload-status" style="font-size:11px; color:#008069; margin-top:5px;"></p>
+        </div>
+    </div>
+  </div>
+
+  <div id="profile-modal" class="modal">
+    <div class="modal-content" style="width:300px;">
+        <div class="modal-header">
+            <h3>Edit My Profile</h3>
+            <span class="close-btn" onclick="closeEditProfile()">&times;</span>
+        </div>
+        <div class="manage-section">
+            <label style="font-size:12px; font-weight:bold;">Name</label>
+            <input id="profile-name" placeholder="Name" style="width:100%; margin-bottom:10px; padding:8px; border:1px solid #ccc; border-radius:4px;">
+            <label style="font-size:12px; font-weight:bold;">Designation</label>
+            <input id="profile-designation" placeholder="Designation" style="width:100%; margin-bottom:10px; padding:8px; border:1px solid #ccc; border-radius:4px;">
+            <button onclick="saveUserProfile()" class="csv-btn" style="background:#008069;">Save Profile</button>
+        </div>
+    </div>
+  </div>
+
+  <div id="channel-details-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Channel Details</h3>
+            <span class="close-btn" onclick="closeChannelDetails()">&times;</span>
+        </div>
+        <div style="text-align:center; padding:10px;">
+            <img id="detail-pl-img" src="" style="width:150px; height:150px; border-radius:50%; object-fit:cover; border:4px solid #f0f2f5; margin-bottom:15px;">
+            <h2 id="detail-pl-title" style="margin:0; color:#b71c1c;"></h2>
+            <div id="detail-pl-desc" style="margin-top:10px; font-size:14px; line-height:1.5; color:#333; background:#f9f9f9; padding:10px; border-radius:8px; border:1px solid #eee; text-align:left;"></div>
+        </div>
+    </div>
+  </div>
+
+  <script type="module" src="firebase-config.js"></script>
+  <script type="module" src="utils.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
