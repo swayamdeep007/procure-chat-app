@@ -90,6 +90,11 @@ body { margin: 0; font-family: "Segoe UI", sans-serif; height: 100dvh; width: 10
 .tag-received { color: #008069; background: #d9fdd3; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 11px; }
 .tag-tpi { color: #673ab7; background: #ede7f6; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 11px; }
 
+/* Message mode buttons */
+.msg-mode-btn { border-radius: 8px; padding: 6px 12px; font-size: 12px; font-weight: bold; cursor: pointer; white-space: nowrap; transition: all 0.2s; opacity: 0.7; }
+.msg-mode-btn:hover { opacity: 1; transform: scale(1.05); }
+.msg-mode-btn.active { opacity: 1; box-shadow: 0 0 8px currentColor; transform: scale(1.1); }
+
 /* CONTROLS */
 #chat-controls { padding: 5px 10px; background: #f0f2f5; border-top: 1px solid #ddd; flex-shrink: 0; position: relative; z-index: 5; }
 .message-row { display: flex; gap: 5px; margin-bottom: 5px; }

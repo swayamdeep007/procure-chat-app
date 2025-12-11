@@ -336,6 +336,34 @@ function compressAndConvertToBase64(file) {
 let allPLs = []; 
 let currentFilter = 'All'; 
 let selectedPL = null;
+let selectedMessageMode = null; // Track selected message mode
+
+// Message mode color config
+const MESSAGE_MODES = {
+    'Urgent': { color: '#d32f2f', bg: '#ffebeb', label: '#Urgent' },
+    'Delayed': { color: '#f57c00', bg: '#fff3e0', label: '#Delayed' },
+    'Escalated': { color: '#b71c1c', bg: '#ffcdd2', label: '#Escalated' },
+    'OnTime': { color: '#388e3c', bg: '#e8f5e9', label: '#OnTime' },
+    'TPI': { color: '#673ab7', bg: '#ede7f6', label: '#TPI' },
+    'Received': { color: '#008069', bg: '#d9fdd3', label: '#Received' }
+};
+
+window.selectMessageMode = (mode) => {
+    if(selectedMessageMode === mode) {
+        selectedMessageMode = null;
+    } else {
+        selectedMessageMode = mode;
+    }
+    // Update button states
+    document.querySelectorAll('.msg-mode-btn').forEach(btn => {
+        const btnMode = btn.getAttribute('data-mode');
+        if(btnMode === selectedMessageMode) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+};
 
 function setupPLListener() { 
     db.collection("PLs").onSnapshot(snap => { 
@@ -429,7 +457,11 @@ window.selectPL = (plId, desc, status) => {
             if(m.isDeleted) return; 
             
             const div = document.createElement("div"); 
+            const modeStyle = m.messageMode && MESSAGE_MODES[m.messageMode] 
+                ? `border-left: 4px solid ${MESSAGE_MODES[m.messageMode].color}; background: ${MESSAGE_MODES[m.messageMode].bg};`
+                : '';
             div.className="message"+(m.uid===CURRENT_USER_ID?" you":"");
+            if(modeStyle) div.style.cssText = modeStyle;
             
             let metaHtml = "";
             if (m.po || m.supplier || m.eta || m.qty || m.dpdt || m.poDate) {
@@ -440,9 +472,13 @@ window.selectPL = (plId, desc, status) => {
                 if(m.dpdt) metaHtml += `<div class="meta-row"><span class="meta-label">DPDT:</span> <span>${m.dpdt}</span></div>`;
                 metaHtml += `</div>`;
             }
+            
+            const modeBadge = m.messageMode && MESSAGE_MODES[m.messageMode]
+                ? `<span class="msg-mode-badge" style="background:${MESSAGE_MODES[m.messageMode].color}; color:white; margin-left:8px; padding:2px 8px; border-radius:12px; font-size:10px; font-weight:bold;">${m.messageMode}</span>`
+                : '';
 
             div.innerHTML = `
-                <span class="msg-sender">${m.userName}</span>
+                <span class="msg-sender">${m.userName}${modeBadge}</span>
                 ${m.imageUrl ? `<img src="${m.imageUrl}" class="msg-image" onclick="window.open('${m.imageUrl}')">` : ''}
                 ${metaHtml}
                 ${m.text ? processTags(m.text) : ''}
@@ -475,26 +511,30 @@ window.sendMessage = async () => {
       }
     }
 
-    let newStatus=null; 
-    const lower=text.toLowerCase(); 
-    if(lower.includes("#received")) newStatus="Received"; 
-    else if(lower.includes("#urgent")) newStatus="Urgent"; 
-    else if(lower.includes("#tpi")) newStatus="TPI";
+    let newStatus = selectedMessageMode || null; 
+    const lower = text.toLowerCase(); 
+    if(!newStatus) {
+        if(lower.includes("#received")) newStatus="Received"; 
+        else if(lower.includes("#urgent")) newStatus="Urgent"; 
+        else if(lower.includes("#tpi")) newStatus="TPI";
+    }
     
     await db.collection("PLs").doc(selectedPL).collection("Messages").add({ 
         text, po, supplier: sup, qty, eta, poDate, dpdt,
         uid: CURRENT_USER_ID, 
         userEmail: CURRENT_USER_EMAIL, 
         userName: CURRENT_USER_NAME, 
+        messageMode: selectedMessageMode || null,
         timestamp: Date.now(), 
         isDeleted: false 
-    });
+    }); 
     
     const up={lastActivity: Date.now()}; 
     if(newStatus) up.status=newStatus; 
     await db.collection("PLs").doc(selectedPL).update(up);
     
-    document.getElementById("chat-input").value="";
+    selectedMessageMode = null;
+    document.querySelectorAll('.msg-mode-btn').forEach(btn => btn.classList.remove('active'));    document.getElementById("chat-input").value="";
 };
 
 window.triggerChatUpload = () => document.getElementById("chat-file-input").click();

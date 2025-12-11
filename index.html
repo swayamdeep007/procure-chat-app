@@ -99,12 +99,12 @@
       <div id="chat-box"></div>
 
       <div id="quick-tags" class="quick-tags" style="display:none;">
-        <button class="tag-btn" style="background:#ffebeb; color:#d32f2f;" onclick="addTag('#Urgent')">#Urgent</button>
-        <button class="tag-btn" style="background:#fff3e0; color:#f57c00;" onclick="addTag('#Delayed')">#Delayed</button>
-        <button class="tag-btn" style="background:#ffcdd2; color:#b71c1c;" onclick="addTag('#Escalated')">#Escalated</button>
-        <button class="tag-btn" style="background:#e8f5e9; color:#388e3c;" onclick="addTag('#OnTime')">#OnTime</button>
-        <button class="tag-btn" style="background:#ede7f6; color:#673ab7;" onclick="addTag('#TPI')">#TPI</button>
-        <button class="tag-btn" style="background:#e3f2fd; color:#008069;" onclick="addTag('#Received')">#Received</button>
+        <button class="msg-mode-btn" data-mode="Urgent" onclick="selectMessageMode('Urgent')" style="background:#ffebeb; color:#d32f2f; border: 2px solid #d32f2f;">🚨 Urgent</button>
+        <button class="msg-mode-btn" data-mode="Delayed" onclick="selectMessageMode('Delayed')" style="background:#fff3e0; color:#f57c00; border: 2px solid #f57c00;">⏱️ Delayed</button>
+        <button class="msg-mode-btn" data-mode="Escalated" onclick="selectMessageMode('Escalated')" style="background:#ffcdd2; color:#b71c1c; border: 2px solid #b71c1c;">📈 Escalated</button>
+        <button class="msg-mode-btn" data-mode="OnTime" onclick="selectMessageMode('OnTime')" style="background:#e8f5e9; color:#388e3c; border: 2px solid #388e3c;">✅ OnTime</button>
+        <button class="msg-mode-btn" data-mode="TPI" onclick="selectMessageMode('TPI')" style="background:#ede7f6; color:#673ab7; border: 2px solid #673ab7;">⚙️ TPI</button>
+        <button class="msg-mode-btn" data-mode="Received" onclick="selectMessageMode('Received')" style="background:#d9fdd3; color:#008069; border: 2px solid #008069;">📦 Received</button>
       </div>
 
       <div id="chat-controls" style="display:none;">
