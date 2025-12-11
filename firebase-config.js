@@ -1,6 +1,6 @@
 export const firebaseConfig = {
   apiKey: "AIzaSyCYCfw2ySpZe8_xlufNmZZufvUkjSYCDeA",
-  authDomain: "procure-chat-app.firebaseapp.com",
+  authDomain: "https://procure-chat-app-gules.vercel.app/",
   projectId: "procure-chat-app",
   storageBucket: "procure-chat-app.firebasestorage.app",
   messagingSenderId: "212631169742",
