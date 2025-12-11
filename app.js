@@ -536,32 +536,74 @@ window.loginUser = async () => {
 window.logoutUser = () => { if(confirm("Logout?")) auth.signOut().then(()=>location.reload()); };
 window.createPL = async () => { const id=document.getElementById("new-pl").value; if(id) await db.collection("PLs").doc(id).set({description:document.getElementById("new-pl-desc").value, status:'Normal', created:Date.now()}); };
 
-window.uploadMasterCSV = () => { 
-    const f=document.getElementById("master-csv").files[0]; 
-    if(!f) return; 
+window.uploadMasterCSV = () => {
+    const f = document.getElementById("master-csv").files[0];
+    if (!f) return;
+
+    // Parse with headers so we can map columns flexibly across different CSV formats
     Papa.parse(f, {
-        header:false, 
-        complete: async r => { 
-            const batchLimit = 400; let batch = db.batch(); let opCount = 0; 
-            for (let i = 0; i < r.data.length; i++) {
-                const row = r.data[i];
-                if(row.length<2) continue;
-                // Columns: 0:PL, 1:Desc, 2:PO, 3:Date, 4:Qty, 5:Unit, 6:DPDT, 7:Sup
-                const pl = row[0]; const po = row[2];
-                batch.set(db.collection("PLs").doc(pl), {description:row[1], relatedPOs: firebase.firestore.FieldValue.arrayUnion(po), status:'Normal', lastActivity:Date.now()}, {merge:true});
-                opCount++;
-                if(po) {
-                    batch.set(db.collection("POs").doc(po), {
-                        poDate: row[3], qty: row[4]+" "+row[5], dpdt: row[6], supplier: row[7]
-                    }, {merge:true});
-                    opCount++;
+        header: true,
+        skipEmptyLines: true,
+        complete: async (res) => {
+            const rows = res.data || [];
+            const batchLimit = 400;
+            let batch = db.batch();
+            let opCount = 0;
+
+            const getField = (obj, candidates) => {
+                for (const k of candidates) {
+                    if (obj.hasOwnProperty(k) && obj[k] !== null && obj[k] !== undefined && String(obj[k]).trim() !== "") return String(obj[k]).trim();
                 }
-                if(opCount>=batchLimit) { await batch.commit(); batch=db.batch(); opCount=0; }
+                return null;
+            };
+
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                // Support common header names from the exported demo file and older templates
+                const pl = getField(row, ["PL Number", "PL", "pl", "pl_number"]);
+                const desc = getField(row, ["Description", "Desc", "description"]);
+                // Related POs column may contain comma-separated POs
+                const relatedPOsRaw = getField(row, ["Related POs", "RelatedPOs", "Related_POs", "Related Po", "RelatedPO"]);
+                const suppliersRaw = getField(row, ["Suppliers", "Supplier", "Suppliers/Manufacturer", "supplier"]);
+                const quantitiesRaw = getField(row, ["Quantities", "Qty", "Quantity", "quantities"]);
+                const poDate = getField(row, ["Last Activity", "Date", "PO Date", "poDate"]);
+
+                if (!pl) continue; // PL is mandatory
+
+                // Normalize related POs into array
+                const relatedPOs = [];
+                if (relatedPOsRaw) {
+                    relatedPOsRaw.split(/[,;|\\/]+/).forEach(p => { const v = p.trim(); if (v) relatedPOs.push(v); });
+                }
+
+                // Update PL document
+                const plData = { description: desc || "", status: 'Normal', lastActivity: Date.now() };
+                if (relatedPOs.length > 0) plData.relatedPOs = firebase.firestore.FieldValue.arrayUnion(...relatedPOs);
+
+                batch.set(db.collection("PLs").doc(pl), plData, { merge: true });
+                opCount++;
+
+                // For each related PO, create/update PO document with available fields
+                for (const po of relatedPOs) {
+                    const poDoc = {};
+                    if (poDate) poDoc.poDate = poDate;
+                    if (quantitiesRaw) poDoc.qty = quantitiesRaw;
+                    if (suppliersRaw) poDoc.supplier = suppliersRaw;
+
+                    if (Object.keys(poDoc).length > 0) {
+                        batch.set(db.collection("POs").doc(po), poDoc, { merge: true });
+                        opCount++;
+                    }
+
+                    if (opCount >= batchLimit) { await batch.commit(); batch = db.batch(); opCount = 0; }
+                }
             }
-            if(opCount>0) await batch.commit();
-            alert("Done"); closeSettings(); 
-        }
-    }); 
+
+            if (opCount > 0) await batch.commit();
+            alert("Done"); closeSettings();
+        },
+        error: (err) => { console.error('CSV parse error', err); alert('CSV parse error: ' + err.message); }
+    });
 };
 
 window.exportChannelChat = async () => { 
