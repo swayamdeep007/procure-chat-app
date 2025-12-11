@@ -1,8 +1,9 @@
-export const firebaseConfig = {
-  apiKey: "AIzaSyCYCfw2ySpZe8_xlufNmZZufvUkjSYCDeA",
-  authDomain: "procure-chat-app.firebaseapp.com",
-  projectId: "procure-chat-app",
-  storageBucket: "procure-chat-app.firebasestorage.app",
-  messagingSenderId: "212631169742",
-  appId: "1:212631169742:web:f66f0297eca3ea3dd63e9f"
+const firebaseConfig = {
+  apiKey: "AIzaSyA63bSlHOa5kyq4welhG3jRKIL8j-xFBpk",
+  authDomain: "procure-chat-app-d75f7.firebaseapp.com",
+  projectId: "procure-chat-app-d75f7",
+  storageBucket: "procure-chat-app-d75f7.firebasestorage.app",
+  messagingSenderId: "178123649294",
+  appId: "1:178123649294:web:4f78457c90a1f3b915a75f",
+  measurementId: "G-F3E0SKKHRF"
 };

@@ -20,24 +20,32 @@ auth.onAuthStateChanged(user => {
   if (user) {
     CURRENT_USER_ID = user.uid;
     CURRENT_USER_EMAIL = user.email;
-    document.getElementById("login-overlay").style.display = "none";
-    document.getElementById("app-container").style.display = "flex";
+    const loginOverlay = document.getElementById("login-overlay");
+    const appContainer = document.getElementById("app-container");
+    if(loginOverlay) loginOverlay.style.display = "none";
+    if(appContainer) appContainer.style.display = "flex";
     
     // Check Admin Logic
     if(ADMIN_EMAILS.includes(CURRENT_USER_EMAIL)) {
-        document.getElementById("btn-trash").style.display = "block";
-        document.getElementById("menu-master-data").style.display = "block"; 
+        const btnTrash = document.getElementById("btn-trash");
+        const menuMaster = document.getElementById("menu-master-data");
+        if(btnTrash) btnTrash.style.display = "block";
+        if(menuMaster) menuMaster.style.display = "block"; 
     } else {
-        document.getElementById("btn-trash").style.display = "none";
-        document.getElementById("menu-master-data").style.display = "none"; 
+        const btnTrash = document.getElementById("btn-trash");
+        const menuMaster = document.getElementById("menu-master-data");
+        if(btnTrash) btnTrash.style.display = "none";
+        if(menuMaster) menuMaster.style.display = "none"; 
     }
     
     loadUserProfile();
     setupPLListener();
   } else {
     CURRENT_USER_ID = null;
-    document.getElementById("app-container").style.display = "none";
-    document.getElementById("login-overlay").style.display = "flex";
+    const appContainer = document.getElementById("app-container");
+    const loginOverlay = document.getElementById("login-overlay");
+    if(appContainer) appContainer.style.display = "none";
+    if(loginOverlay) loginOverlay.style.display = "flex";
   }
 });
 
@@ -498,7 +506,33 @@ window.toggleUserMenu = () => document.getElementById("user-display").classList.
 window.openSettings = () => document.getElementById("settings-modal").style.display="block"; window.closeSettings = () => document.getElementById("settings-modal").style.display="none";
 window.openReportsModal = () => document.getElementById("reports-modal").style.display="block"; window.closeReportsModal = () => document.getElementById("reports-modal").style.display="none";
 window.openEditProfile = () => document.getElementById("profile-modal").style.display="block"; window.closeEditProfile = () => document.getElementById("profile-modal").style.display="none";
-window.loginUser = () => { auth.signInWithEmailAndPassword(document.getElementById("login-email").value, document.getElementById("login-password").value).catch(e=>alert(e.message)); };
+window.loginUser = async () => { 
+    const email = document.getElementById("login-email").value;
+    const password = document.getElementById("login-password").value;
+    const errorEl = document.getElementById("login-error");
+    
+    if(!email || !password) {
+        if(errorEl) errorEl.textContent = "Please enter email and password";
+        return;
+    }
+    
+    try {
+        if(errorEl) errorEl.textContent = "Signing in...";
+        await auth.signInWithEmailAndPassword(email, password);
+        if(errorEl) errorEl.textContent = "";
+    } catch(e) {
+        let errMsg = e.message;
+        if(e.code === 'auth/network-request-failed' || e.message?.includes('ERR_CONNECTION_TIMED_OUT')) {
+            errMsg = "Network error. Please check your connection and try again.";
+        } else if(e.code === 'auth/user-not-found') {
+            errMsg = "User not found. Please check your email.";
+        } else if(e.code === 'auth/wrong-password') {
+            errMsg = "Invalid password.";
+        }
+        if(errorEl) errorEl.textContent = errMsg;
+        console.error("Login error:", e);
+    }
+};
 window.logoutUser = () => { if(confirm("Logout?")) auth.signOut().then(()=>location.reload()); };
 window.createPL = async () => { const id=document.getElementById("new-pl").value; if(id) await db.collection("PLs").doc(id).set({description:document.getElementById("new-pl-desc").value, status:'Normal', created:Date.now()}); };
 
