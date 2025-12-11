@@ -433,6 +433,7 @@ window.selectPL = (plId, desc, status) => {
     document.getElementById("bulk-chat-header").style.display="none"; 
     document.getElementById("bulk-controls").style.display="none"; 
     document.getElementById("chat-controls").style.display="flex";
+    document.getElementById("quick-tags").style.display="flex";
     
     document.getElementById("selected-pl-title").textContent = plId; 
     document.getElementById("selected-pl-desc").textContent = desc; 
@@ -538,6 +539,12 @@ window.sendMessage = async () => {
 };
 
 window.triggerChatUpload = () => document.getElementById("chat-file-input").click();
+window.closeChat = () => { 
+    document.getElementById("app-container").classList.remove("chat-active"); 
+    selectedPL = null; 
+    selectedMessageMode = null;
+    document.querySelectorAll('.msg-mode-btn').forEach(btn => btn.classList.remove('active'));
+};
 window.handleChatImageSelect = async () => { try { const b64 = await compressAndConvertToBase64(document.getElementById("chat-file-input").files[0]); await sendImageMessage(b64); } catch(e){alert(e);} };
 window.triggerDPUpload = () => document.getElementById("dp-file-input").click();
 window.handleDPSelect = async () => { try { const b64 = await compressAndConvertToBase64(document.getElementById("dp-file-input").files[0]); await db.collection("PLs").doc(selectedPL).update({photoUrl:b64}); } catch(e){alert(e);} };
