@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content" />
+  <title>Western Railway Procurement Chat</title>
+
+  <meta name="description" content="Real-time collaboration and PL management for Western Railway Stores Department." />
+  <meta name="keywords" content="Procurement, Railway, Chat, PL Management, PO Tracking, Western Railway" />
+  <meta name="author" content="Jay Mehta" />
+  <meta name="theme-color" content="#b71c1c" />
+
+  <!-- Open Graph Meta Tags -->
+  <meta property="og:title" content="Western Railway Procurement Chat" />
+  <meta property="og:description" content="Manage PLs, track POs, and collaborate in real-time." />
+  <meta property="og:image" content="./wr-logo.png" />
+  <meta property="og:url" content="https://chat-app-final-sable.vercel.app/" /> <!-- Placeholder URL -->
+  <meta property="og:type" content="website" />
+
+  <!-- Twitter Card Meta Tags -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Western Railway Procurement Chat" />
+  <meta name="twitter:description" content="Manage PLs, track POs, and collaborate in real-time." />
+  <meta name="twitter:image" content="./wr-logo.png" />
+  <link rel="stylesheet" href="styles.css" />
+
+  <link rel="shortcut icon" href="./thumb.png" type="image/x-icon">
+
+  <script src="https://www.gstatic.com/firebasejs/10.5.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.5.0/firebase-auth-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+</head>
+
+<body>
+
+  <input type="file" id="chat-file-input" hidden accept="image/*" onchange="handleChatImageSelect()">
+  <input type="file" id="dp-file-input" hidden accept="image/*" onchange="handleDPSelect()">
+
+  <div id="user-display" onclick="toggleUserMenu()">
+    <span id="user-name-display">👤 Loading...</span>
+    <span class="dropdown-arrow">▼</span>
+    <div id="user-dropdown" class="dropdown-content">
+      <div class="dropdown-item" onclick="openDashboard()">📈 Dashboard</div>
+      <div class="dropdown-item" onclick="openEditProfile()">✏️ Edit Profile</div>
+      <div id="menu-reports" class="dropdown-item" onclick="openReportsModal()">📊 Reports</div>
+      <div id="menu-master-data" class="dropdown-item" onclick="openSettings()" style="display:none;">⚙️ Master Data
+      </div>
+      <div class="dropdown-divider"></div>
+      <div class="dropdown-item logout-item" onclick="logoutUser()">🚪 Logout</div>
+    </div>
+  </div>
+
+  <div id="login-overlay">
+    <div class="login-box">
+      <h2>🚂 Western Railway Stores</h2>
+      <p>Secure Login</p>
+      <input type="email" id="login-email" placeholder="Email">
+      <input type="password" id="login-password" placeholder="Password">
+      <button onclick="loginUser()">Login</button>
+      <p id="login-error" style="color:red; font-size:12px; margin-top:10px;"></p>
+    </div>
+  </div>
+
+  <div id="app-container" style="display:none;">
+    <div id="pl-sidebar">
+      <div class="sidebar-header">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <h2>📋 PL List</h2>
+        </div>
+        <input id="pl-search" placeholder="🔍 Search PLs..." onkeyup="filterPLs()">
+        <div class="filter-chips">
+          <button id="btn-all" class="chip active" onclick="setFilter('All')">All</button>
+          <button id="btn-urgent" class="chip chip-urgent" onclick="setFilter('Urgent')">Urg</button>
+          <button id="btn-delayed" class="chip chip-delayed" onclick="setFilter('Delayed')">Dly</button>
+          <button id="btn-escalated" class="chip chip-escalated" onclick="setFilter('Escalated')">Esc</button>
+          <button id="btn-ontime" class="chip chip-ontime" onclick="setFilter('OnTime')">OnT</button>
+          <button id="btn-tpi" class="chip chip-tpi" onclick="setFilter('TPI')">TPI</button>
+          <button id="btn-received" class="chip chip-received" onclick="setFilter('Received')">Rcvd</button>
+          <button id="btn-trash" class="chip chip-trash" onclick="setFilter('Trash')" style="display:none;">🗑️</button>
+        </div>
+      </div>
+      <div id="pl-list"></div>
+      <div class="input-area">
+        <input id="new-pl" placeholder="New PL Number">
+        <input id="new-pl-desc" placeholder="Description">
+        <button onclick="createPL()">+ Add PL Channel</button>
+      </div>
+    </div>
+
+    <div id="chat-panel">
+      <div class="chat-header">
+        <div class="chat-header-top">
+          <button id="back-btn" onclick="closeChat()">←</button>
+
+          <div class="header-img-container">
+            <img id="header-pl-img"
+              src="data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22100%22%20height%3D%22100%22%3E%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20fill%3D%22%23e0e0e0%22%2F%3E%3Ctext%20x%3D%2250%25%22%20y%3D%2250%25%22%20font-family%3D%22sans-serif%22%20font-size%3D%2235%22%20fill%3D%22%23888%22%20dy%3D%22.3em%22%20text-anchor%3D%22middle%22%3EPL%3C%2Ftext%3E%3C%2Fsvg%3E"
+              class="header-pl-avatar" onclick="viewChannelDetails()" title="View Info">
+            <button class="edit-dp-btn" onclick="triggerDPUpload()" title="Change Photo">📷</button>
+          </div>
+
+          <div style="flex:1; overflow:hidden; margin-left:5px;">
+            <h2 id="selected-pl-title" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Select a PL
+            </h2>
+            <div style="display:flex; align-items:center;">
+              <span id="selected-pl-desc" class="header-desc"
+                style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Western Railway Stores Dept.</span>
+              <span id="selected-pl-status" class="header-status"></span>
+            </div>
+          </div>
+
+          <button id="export-chat-btn" onclick="exportChannelChat()" title="Download Chat History"
+            style="margin-left:10px; background:none; border:none; font-size:18px; cursor:pointer;">📥</button>
+        </div>
+
+        <!-- PO Selection Bar -->
+        <div class="po-selection-bar">
+          <div class="po-dropdown-container">
+            <span class="po-label">📦</span>
+            <select id="po-select" onchange="onPOSelect()">
+              <option value="">All POs</option>
+            </select>
+          </div>
+          <button class="po-action-btn create" onclick="openPOModal('create')">+ Create New PO</button>
+          <button class="po-action-btn update" onclick="openPOModal('update')" id="btn-update-po" disabled>✏️ Update
+            PO</button>
+        </div>
+      </div>
+
+      <div id="chat-box"></div>
+
+      <div id="quick-tags" class="quick-tags" style="display:none;">
+        <button class="tag-btn" style="background:#ffebeb; color:#d32f2f;" onclick="addTag('#Urgent')">#Urgent</button>
+        <button class="tag-btn" style="background:#fff3e0; color:#f57c00;"
+          onclick="addTag('#Delayed')">#Delayed</button>
+        <button class="tag-btn" style="background:#ffcdd2; color:#b71c1c;"
+          onclick="addTag('#Escalated')">#Escalated</button>
+        <button class="tag-btn" style="background:#e8f5e9; color:#388e3c;" onclick="addTag('#OnTime')">#OnTime</button>
+        <button class="tag-btn" style="background:#ede7f6; color:#673ab7;" onclick="addTag('#TPI')">#TPI</button>
+        <button class="tag-btn" style="background:#e3f2fd; color:#008069;"
+          onclick="addTag('#Received')">#Received</button>
+      </div>
+
+      <div id="chat-controls" style="display:none;">
+        <div class="message-row">
+          <button id="btn-attach" onclick="triggerChatUpload()" title="Send Photo">📎</button>
+          <input id="chat-input" placeholder="Type a message...">
+          <button onclick="sendMessage()">➤</button>
+        </div>
+        <div id="upload-progress-container" style="display:none; padding:0 5px 5px 5px;">
+          <span style="font-size:10px; color:#008069;">Compressing & Sending image...</span>
+        </div>
+        <div class="po-link-indicator" id="po-link-indicator" style="display:none;">
+          <span id="po-link-text">Linking to: PO 123456</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Panel: PO List -->
+    <div id="po-panel">
+      <div class="po-panel-header">
+        <h3>📦 PO List</h3>
+        <button class="po-panel-toggle" onclick="togglePOPanel()" title="Toggle Panel">◀</button>
+      </div>
+      <div class="po-filter-bar">
+        <label class="filter-checkbox">
+          <input type="checkbox" id="filter-chat-checkbox" onchange="onFilterChatToggle()">
+          <span>Filtered chat</span>
+        </label>
+      </div>
+      <div class="po-table-header">
+        <span class="po-col po-no">PO No.</span>
+        <span class="po-col firm">Firm name</span>
+        <span class="po-col dp">DP ↕</span>
+        <span class="po-col qty">Qty ↕</span>
+        <span class="po-col qs">%QS</span>
+        <span class="po-col score">PO Score</span>
+      </div>
+      <div id="po-list-body"></div>
+      <div class="po-panel-footer">
+        <button class="add-po-btn" onclick="openPOModal('create')">+ Add PO</button>
+      </div>
+    </div>
+  </div>
+
+  <datalist id="pos-list"></datalist>
+
+  <!-- PO Create/Update Modal -->
+  <div id="po-modal" class="modal">
+    <div class="modal-content po-modal-content">
+      <div class="modal-header">
+        <h3 id="po-modal-title">Create New PO</h3>
+        <span class="close-btn" onclick="closePOModal()">&times;</span>
+      </div>
+      <div class="po-form">
+        <div class="form-row">
+          <label>PO Number *</label>
+          <input type="text" id="po-form-number" placeholder="e.g., 721554653">
+        </div>
+        <div class="form-row">
+          <label>Firm Name *</label>
+          <input type="text" id="po-form-firm" placeholder="e.g., Agile Tenders India">
+        </div>
+        <div class="form-row-half">
+          <div class="form-row">
+            <label>PO Date</label>
+            <input type="date" id="po-form-date">
+          </div>
+          <div class="form-row">
+            <label>DP/FDP Date *</label>
+            <input type="date" id="po-form-fdp">
+          </div>
+        </div>
+        <div class="form-row-half">
+          <div class="form-row">
+            <label>Quantity</label>
+            <input type="number" id="po-form-qty" placeholder="e.g., 8500">
+          </div>
+          <div class="form-row">
+            <label>%QS</label>
+            <input type="number" id="po-form-qs" placeholder="e.g., 15">
+          </div>
+        </div>
+        <div class="form-row-half">
+          <div class="form-row">
+            <label>Extension Count</label>
+            <input type="number" id="po-form-ext" value="0">
+          </div>
+          <div class="form-row">
+            <label>TPI Count</label>
+            <input type="number" id="po-form-tpi-count" value="0">
+          </div>
+        </div>
+        <div class="form-row-half">
+          <div class="form-row">
+            <label>TPI Score</label>
+            <input type="number" id="po-form-tpi-score" placeholder="e.g., 90">
+          </div>
+          <div class="form-row">
+            <label>PO Status</label>
+            <select id="po-form-status">
+              <option value="Open">Open</option>
+              <option value="InProgress">In Progress</option>
+              <option value="Delayed">Delayed</option>
+              <option value="Received">Received</option>
+              <option value="Closed">Closed</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <label>Satisfaction/Feedback</label>
+          <textarea id="po-form-feedback" placeholder="Optional notes..."></textarea>
+        </div>
+        <div class="form-actions">
+          <button class="cancel-btn" onclick="closePOModal()">Cancel</button>
+          <button class="save-btn" onclick="savePO()">Save PO</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="dashboard-modal" class="modal">
+    <div class="modal-content" style="max-width: 700px; width: 95%;">
+      <div class="modal-header">
+        <h3>📈 Master Data Dashboard</h3>
+        <span class="close-btn" onclick="closeDashboard()">&times;</span>
+      </div>
+      <div class="dashboard-body" style="padding: 10px; background: #f4f6f8;">
+        <div class="stats-grid">
+          <div class="stat-card total">
+            <div class="stat-val" id="dash-total">0</div>
+            <div class="stat-label">Total PLs</div>
+          </div>
+          <div class="stat-card urgent">
+            <div class="stat-val" id="dash-urgent">0</div>
+            <div class="stat-label">Urgent</div>
+          </div>
+          <div class="stat-card tpi">
+            <div class="stat-val" id="dash-tpi">0</div>
+            <div class="stat-label">TPI</div>
+          </div>
+          <div class="stat-card received">
+            <div class="stat-val" id="dash-received">0</div>
+            <div class="stat-label">Received</div>
+          </div>
+        </div>
+
+        <div class="stats-grid-small" style="margin-top:10px;">
+          <div class="mini-stat">Escalated: <strong id="dash-esc">0</strong></div>
+          <div class="mini-stat">Delayed: <strong id="dash-delay">0</strong></div>
+          <div class="mini-stat">On Time: <strong id="dash-ontime">0</strong></div>
+          <div class="mini-stat">Normal: <strong id="dash-normal">0</strong></div>
+        </div>
+
+        <div style="margin-top: 20px;">
+          <h4 style="margin-bottom: 10px; color: #b71c1c;">⚠️ Critical Attention Needed</h4>
+          <div id="dashboard-critical-list"
+            style="max-height: 200px; overflow-y: auto; background: white; border: 1px solid #ddd; border-radius: 8px;">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="reports-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>📊 Reports Center</h3>
+        <span class="close-btn" onclick="closeReportsModal()">&times;</span>
+      </div>
+      <div class="manage-section">
+        <h4 style="margin-top:0;">Global Status Report</h4>
+        <p style="font-size:12px; color:#666;">Export a complete list of all PLs.</p>
+        <button onclick="downloadAllPLReport()" class="csv-btn" style="background:#008069;">📥 Download All PLs Report
+          (CSV)</button>
+        <p id="report-status" style="font-size:11px; color:#008069; margin-top:5px;"></p>
+      </div>
+    </div>
+  </div>
+
+  <div id="settings-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Master Data</h3>
+        <span class="close-btn" onclick="closeSettings()">&times;</span>
+      </div>
+      <div class="manage-section">
+        <h4 style="margin-top:0;">Upload Master Sheet</h4>
+        <div
+          style="font-size:11px; color:#555; background:#f0f2f5; padding:8px; border-radius:4px; margin-bottom:10px;">
+          <strong>CSV Format (9 Columns):</strong><br>
+          1. PL No | 2. Desc | 3. PO No | 4. PO Date<br>
+          5. Qty | 6. Unit | 7. DPDT | 8. Supplier | 9. Status
+        </div>
+        <input type="file" id="master-csv" accept=".csv" style="font-size:12px; margin-bottom:10px; width:100%;">
+        <button onclick="uploadMasterCSV()" class="csv-btn">🚀 Upload & Update</button>
+        <p id="upload-status" style="font-size:11px; color:#008069; margin-top:5px;"></p>
+      </div>
+    </div>
+  </div>
+
+  <div id="profile-modal" class="modal">
+    <div class="modal-content" style="width:300px;">
+      <div class="modal-header">
+        <h3>Edit My Profile</h3>
+        <span class="close-btn" onclick="closeEditProfile()">&times;</span>
+      </div>
+      <div class="manage-section">
+        <label style="font-size:12px; font-weight:bold;">Name</label>
+        <input id="profile-name" placeholder="Name"
+          style="width:100%; margin-bottom:10px; padding:8px; border:1px solid #ccc; border-radius:4px;">
+        <label style="font-size:12px; font-weight:bold;">Designation</label>
+        <input id="profile-designation" placeholder="Designation"
+          style="width:100%; margin-bottom:10px; padding:8px; border:1px solid #ccc; border-radius:4px;">
+        <button onclick="saveUserProfile()" class="csv-btn" style="background:#008069;">Save Profile</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="channel-details-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Channel Details</h3>
+        <span class="close-btn" onclick="closeChannelDetails()">&times;</span>
+      </div>
+      <div style="text-align:center; padding:10px;">
+        <img id="detail-pl-img" src=""
+          style="width:150px; height:150px; border-radius:50%; object-fit:cover; border:4px solid #f0f2f5; margin-bottom:15px;">
+        <h2 id="detail-pl-title" style="margin:0; color:#b71c1c;"></h2>
+        <div id="detail-pl-desc"
+          style="margin-top:10px; font-size:14px; line-height:1.5; color:#333; background:#f9f9f9; padding:10px; border-radius:8px; border:1px solid #eee; text-align:left;">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="firebase-config.js"></script>
+  <script type="module" src="utils.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+
+</html>
